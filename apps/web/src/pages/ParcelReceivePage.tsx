@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container } from '../components/common/Container';
 import { Button } from '../components/common/Button';
@@ -14,24 +14,39 @@ interface ParcelReceivePageProps {
 
 export const ParcelReceivePage: React.FC<ParcelReceivePageProps> = ({ type }) => {
   const navigate = useNavigate();
-  const { scannedBarcodes, clearBarcodes } = useScan();
+  const { scannedBarcodes, clearBarcodes, setReturnPath, formData, setFormData, trackingNumbers: contextTrackingNumbers, setTrackingNumbers: setContextTrackingNumbers } = useScan();
 
-  const [identityNum, setIdentityNum] = useState('');
-  const [contact, setContact] = useState('');
-  const [unitNo, setUnitNo] = useState('');
-  const [trackingNumbers, setTrackingNumbers] = useState<string[]>([]);
+  const [identityNum, setIdentityNum] = useState(formData.identityNum);
+  const [contact, setContact] = useState(formData.contact);
+  const [unitNo, setUnitNo] = useState(formData.unitNo);
+  const [trackingNumbers, setTrackingNumbers] = useState<string[]>(contextTrackingNumbers);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const lastScannedRef = useRef<string>('');
 
   const httpClient = new HttpClient();
   const parcelService = new ParcelService(httpClient);
 
+  // Save form data to context
+  useEffect(() => {
+    setFormData({ identityNum, contact, unitNo });
+  }, [identityNum, contact, unitNo, setFormData]);
+
+  // Save tracking numbers to context
+  useEffect(() => {
+    setContextTrackingNumbers(trackingNumbers);
+  }, [trackingNumbers, setContextTrackingNumbers]);
+
   // Merge scanned barcodes when returning from ScanPage
   useEffect(() => {
-    if (scannedBarcodes.length > 0) {
-      setTrackingNumbers([...trackingNumbers, ...scannedBarcodes]);
+    if (scannedBarcodes.length > 0 && lastScannedRef.current !== JSON.stringify(scannedBarcodes)) {
+      setTrackingNumbers((prev) => {
+        const uniqueNewBarcodes = scannedBarcodes.filter(barcode => !prev.includes(barcode));
+        return uniqueNewBarcodes.length > 0 ? [...prev, ...uniqueNewBarcodes] : prev;
+      });
       clearBarcodes();
+      lastScannedRef.current = JSON.stringify(scannedBarcodes);
     }
-  }, [scannedBarcodes]);
+  }, [scannedBarcodes, clearBarcodes]);
 
   const handleDeleteBarcode = (index: number) => {
     setTrackingNumbers((prev) => prev.filter((_, i) => i !== index));
@@ -65,11 +80,11 @@ export const ParcelReceivePage: React.FC<ParcelReceivePageProps> = ({ type }) =>
 
       showSuccessToast('Parcel submitted successfully!');
 
-      // Clear form for next parcel
-      setIdentityNum('');
-      setContact('');
+      // Clear form for next parcel (but keep identity and contact)
       setUnitNo('');
       setTrackingNumbers([]);
+      setContextTrackingNumbers([]);
+      setFormData({ identityNum, contact, unitNo: '' });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to submit parcel';
@@ -120,7 +135,10 @@ export const ParcelReceivePage: React.FC<ParcelReceivePageProps> = ({ type }) =>
           <div className="input-group">
             <button
               className="scan-button"
-              onClick={() => navigate('/scan')}
+              onClick={() => {
+                setReturnPath(type === 'incoming' ? '/incoming' : '/release');
+                navigate('/scan');
+              }}
               disabled={isSubmitting}
             >
               📷 Scan

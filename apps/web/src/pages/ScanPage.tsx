@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+// @ts-ignore
 import Quagga from 'quagga';
 import { Container } from '../components/common/Container';
 import { Button } from '../components/common/Button';
@@ -11,7 +13,7 @@ import './ScanPage.css';
 
 export const ScanPage: React.FC = () => {
   const navigate = useNavigate();
-  const { setScannedBarcodes } = useScan();
+  const { setScannedBarcodes, returnPath } = useScan();
 
   const [scannedBarcodes, setLocalBarcodes] = useState<string[]>([]);
   const [cameraActive, setCameraActive] = useState(false);
@@ -19,15 +21,29 @@ export const ScanPage: React.FC = () => {
   const [fallbackInput, setFallbackInput] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const quaggaInitializedRef = useRef(false);
+  const scannedBarcodesRef = useRef<string[]>([]);
 
   const handleLaunchCamera = async () => {
     try {
-      setCameraError(false);
+      console.log('[ScanPage] Launch camera clicked');
 
+      // Check if mediaDevices API is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not supported. Please ensure: 1) You\'re using HTTPS (not HTTP), 2) Your browser supports camera access, 3) You have not denied camera permissions in browser settings');
+      }
+
+      setCameraError(false);
+      setCameraActive(true);
+
+      console.log('[ScanPage] Requesting camera permission...');
       // Request camera permission and initialize quagga
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: 'environment' } },
       });
+
+      console.log('[ScanPage] Camera permission granted, received stream:', stream);
+      // Wait for video element to be rendered
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -48,7 +64,7 @@ export const ScanPage: React.FC = () => {
             readers: ['code_128_reader'],
             debug: {
               showCanvas: false,
-              showPatternin: false,
+              showPattern: false,
             },
           },
         },
@@ -72,8 +88,11 @@ export const ScanPage: React.FC = () => {
 
               if (validation.isValid) {
                 // Check for duplicates
-                if (!scannedBarcodes.includes(barcode)) {
-                  setLocalBarcodes((prev) => [...prev, barcode]);
+                if (!scannedBarcodesRef.current.includes(barcode)) {
+                  setLocalBarcodes((prev) => {
+                    scannedBarcodesRef.current = [...prev, barcode];
+                    return scannedBarcodesRef.current;
+                  });
                   playBeep();
                   showSuccessToast(`Scanned: ${barcode}`);
                 } else {
@@ -90,6 +109,7 @@ export const ScanPage: React.FC = () => {
       );
     } catch (error) {
       console.error('Camera access error:', error);
+      setCameraActive(false);
       setCameraError(true);
       showErrorToast('Camera access denied. Using manual entry instead.');
       setFallbackInput('');
@@ -108,8 +128,11 @@ export const ScanPage: React.FC = () => {
       return;
     }
 
-    if (!scannedBarcodes.includes(fallbackInput)) {
-      setLocalBarcodes((prev) => [...prev, fallbackInput]);
+    if (!scannedBarcodesRef.current.includes(fallbackInput)) {
+      setLocalBarcodes((prev) => {
+        scannedBarcodesRef.current = [...prev, fallbackInput];
+        return scannedBarcodesRef.current;
+      });
       playBeep();
       showSuccessToast(`Added: ${fallbackInput}`);
       setFallbackInput('');
@@ -138,7 +161,7 @@ export const ScanPage: React.FC = () => {
 
     // Update context with scanned barcodes and navigate back
     setScannedBarcodes(scannedBarcodes);
-    navigate(-1);
+    navigate(returnPath);
   };
 
   // Cleanup on unmount
@@ -156,7 +179,7 @@ export const ScanPage: React.FC = () => {
 
   return (
     <Container className="scan-page">
-      <button className="back-button" onClick={() => navigate(-1)}>
+      <button className="back-button" onClick={() => navigate(returnPath)}>
         ← Back
       </button>
 
