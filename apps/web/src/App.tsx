@@ -1,35 +1,33 @@
-import { useState } from 'react';
+import { Routes, Route } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { LandingPage } from './pages/LandingPage';
 import { ParcelReceivePage } from './pages/ParcelReceivePage';
+import { ScanPage } from './pages/ScanPage';
 import './App.css';
 
-type Page = 'landing' | 'incoming' | 'release';
-
 function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('landing');
-
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'incoming':
-        return (
-          <ParcelReceivePage onBack={() => setCurrentPage('landing')} />
-        );
-      case 'release':
-        return (
-          <ParcelReceivePage onBack={() => setCurrentPage('landing')} />
-        );
-      case 'landing':
-      default:
-        return (
-          <LandingPage
-            onNavigateIncoming={() => setCurrentPage('incoming')}
-            onNavigateRelease={() => setCurrentPage('release')}
-          />
-        );
-    }
-  };
-
-  return renderPage();
+  return (
+    <>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/incoming" element={<ParcelReceivePage type="incoming" />} />
+        <Route path="/release" element={<ParcelReceivePage type="release" />} />
+        <Route path="/scan" element={<ScanPage />} />
+      </Routes>
+      <ToastContainer
+        position="bottom-center"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+    </>
+  );
 }
 
 export default App;
