@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api-dev",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["api:dev"],
+      "port": 3000
+    },
+    {
+      "name": "web-dev",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["web:dev"],
+      "port": 5173
+    },
+    {
+      "name": "full-stack",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["dev"],
+      "port": 5173
+    }
+  ]
+}

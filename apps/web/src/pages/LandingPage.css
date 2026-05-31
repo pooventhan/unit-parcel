@@ -1,0 +1,41 @@
+.landing-page {
+  gap: var(--spacing-lg);
+}
+
+.buttons-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  width: 100%;
+  max-width: 300px;
+}
+
+.buttons-container button {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  font-size: 1.25rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+}
+
+/* Mobile-first sizing */
+@media (min-width: 640px) {
+  .buttons-container {
+    max-width: 320px;
+    gap: var(--spacing-xl);
+  }
+
+  .buttons-container button {
+    font-size: 1.5rem;
+  }
+}
+
+/* Tablet and larger */
+@media (min-width: 768px) {
+  .buttons-container {
+    max-width: 350px;
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "unit-parcel",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "bun --filter \"*\" dev",
+    "build": "bun --filter \"*\" build",
+    "api:dev": "bun --filter api dev",
+    "web:dev": "bun --filter web dev"
+  }
+}
