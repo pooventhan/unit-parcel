@@ -1,43 +1,23 @@
 import { toast } from 'react-toastify';
 
-/**
- * Show a success toast notification
- */
+const toastConfig = {
+  position: 'bottom-center' as const,
+  autoClose: 2000,
+  hideProgressBar: false,
+  closeOnClick: true,
+  pauseOnHover: true,
+  draggable: true,
+  limit: 2,
+};
+
 export function showSuccessToast(message: string): void {
-  toast.success(message, {
-    position: 'bottom-center',
-    autoClose: 3000,
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-  });
+  toast.success(message, toastConfig);
 }
 
-/**
- * Show an error toast notification
- */
 export function showErrorToast(message: string): void {
-  toast.error(message, {
-    position: 'bottom-center',
-    autoClose: 3000,
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-  });
+  toast.error(message, toastConfig);
 }
 
-/**
- * Show an info toast notification
- */
 export function showInfoToast(message: string): void {
-  toast.info(message, {
-    position: 'bottom-center',
-    autoClose: 3000,
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-  });
+  toast.info(message, toastConfig);
 }
