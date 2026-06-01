@@ -37,10 +37,23 @@ export const ScanPage: React.FC = () => {
       setCameraActive(true);
 
       console.log('[ScanPage] Requesting camera permission...');
-      // Request camera permission and initialize quagga
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-      });
+
+      // Get available cameras and prefer the primary wide-angle lens
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoCameras = devices.filter(device => device.kind === 'videoinput');
+      console.log('[ScanPage] Available cameras:', videoCameras.length);
+
+      // Try to use the first/primary camera (usually the main lens)
+      const constraints: MediaStreamConstraints = {
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          ...(videoCameras.length > 0 && { deviceId: { exact: videoCameras[0].deviceId } }),
+        },
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
       console.log('[ScanPage] Camera permission granted, received stream:', stream);
       // Wait for video element to be rendered
@@ -213,9 +226,6 @@ export const ScanPage: React.FC = () => {
               playsInline
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
-            <div className="viewfinder-overlay">
-              <div className="viewfinder-box" />
-            </div>
           </div>
         </div>
       )}
