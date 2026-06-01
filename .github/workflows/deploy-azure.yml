@@ -28,6 +28,9 @@ jobs:
           bun install --production
           cd ../..
 
+      - name: Make deploy script executable
+        run: chmod +x deploy.sh
+
       - name: Upload to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
