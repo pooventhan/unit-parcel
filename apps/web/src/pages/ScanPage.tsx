@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 // @ts-ignore
 import Quagga from 'quagga';
 import { Container } from '../components/common/Container';
-import { Button } from '../components/common/Button';
 import { useScan } from '../context/ScanContext';
 import { playBeep } from '../utils/audio';
 import { validateBarcode } from '../utils/barcode-validator';
@@ -183,7 +182,7 @@ export const ScanPage: React.FC = () => {
 
   return (
     <Container className="scan-page">
-      <button className="back-button" onClick={() => { stopCamera(); navigate(returnPath); }}>
+      <button className="back-button" onClick={handleDone}>
         ← Back
       </button>
 
@@ -239,11 +238,6 @@ export const ScanPage: React.FC = () => {
         </div>
       )}
 
-      <Button
-        label={scannedBarcodes.length === 0 ? 'Done (No barcodes)' : `Done (${scannedBarcodes.length} barcodes)`}
-        variant="primary"
-        onClick={handleDone}
-      />
     </Container>
   );
 };
