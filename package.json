@@ -13,6 +13,6 @@
     "copy:web-to-api": "node scripts/copy-web-dist.js",
     "api:dev": "bun --filter api dev",
     "web:dev": "bun --filter web dev",
-    "start": "cd apps/api && bun src/index.ts"
+    "start": "bash startup.sh"
   }
 }
