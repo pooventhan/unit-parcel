@@ -56,10 +56,19 @@
   border: 2px solid var(--color-border);
 }
 
-.video-container video {
-  width: 100%;
-  height: 100%;
+/* Quagga injects its own <video> and <canvas> into the container */
+.video-container video,
+.video-container canvas {
+  width: 100% !important;
+  height: 100% !important;
   object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.video-container canvas {
+  display: none;
 }
 
 /* Fallback Input Section */

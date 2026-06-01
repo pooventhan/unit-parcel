@@ -19,7 +19,8 @@ export const ScanPage: React.FC = () => {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState(false);
   const [fallbackInput, setFallbackInput] = useState('');
-  const videoRef = useRef<HTMLVideoElement>(null);
+  // Quagga expects a container div as target — it injects its own <video> + canvas inside
+  const cameraContainerRef = useRef<HTMLDivElement>(null);
   const quaggaInitializedRef = useRef(false);
   const scannedBarcodesRef = useRef<string[]>([]);
   const lastScannedRef = useRef<{ code: string; timestamp: number } | null>(null);
@@ -33,16 +34,16 @@ export const ScanPage: React.FC = () => {
       setCameraError(false);
       setCameraActive(true);
 
-      // Step 1: Get permission with a minimal request — labels are blank until permission is granted
+      // Step 1: Minimal permission request — device labels are blank until permission is granted
       const permissionStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       permissionStream.getTracks().forEach(t => t.stop());
 
-      // Step 2: Now labels are populated — enumerate and pick the right camera
+      // Step 2: Enumerate with labels now populated
       const devices = await navigator.mediaDevices.enumerateDevices();
       const cameras = devices.filter(d => d.kind === 'videoinput');
       console.log('[ScanPage] Cameras:', cameras.map(c => c.label));
 
-      // Prefer the main rear camera: has "back"/"rear" in label, excludes "ultra", "tele", "front", "selfie"
+      // Prefer the main rear camera: has "back"/"rear", excludes "ultra" and "tele"
       const mainRearCamera =
         cameras.find(c => {
           const l = c.label.toLowerCase();
@@ -55,20 +56,20 @@ export const ScanPage: React.FC = () => {
 
       console.log('[ScanPage] Selected camera:', mainRearCamera?.label ?? 'fallback (facingMode only)');
 
-      // Step 3: Let Quagga open the camera — no manual getUserMedia needed
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      // Wait for the camera container div to be rendered in the DOM
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const quaggaConstraints = mainRearCamera
         ? { deviceId: { exact: mainRearCamera.deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
         : { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } };
 
-      // Initialize Quagga for barcode detection
+      // Step 3: Pass the container div as target — Quagga injects its own <video> inside it
       Quagga.init(
         {
           inputStream: {
             name: 'LiveStream',
             type: 'LiveStream',
-            target: videoRef.current,
+            target: cameraContainerRef.current,
             constraints: quaggaConstraints,
           },
           decoder: {
@@ -83,24 +84,24 @@ export const ScanPage: React.FC = () => {
           if (err) {
             console.error('Quagga initialization error:', err);
             setCameraError(true);
-            setFallbackInput('');
+            setCameraActive(false);
             return;
           }
 
           Quagga.start();
           quaggaInitializedRef.current = true;
-          setCameraActive(true);
 
-          // Handle barcode detection with debouncing
           Quagga.onDetected((result: any) => {
             if (result.codeResult && result.codeResult.code) {
               const barcode = result.codeResult.code;
               const now = Date.now();
 
-              // Debounce: ignore if same code was scanned within 1 second
-              if (lastScannedRef.current &&
-                  lastScannedRef.current.code === barcode &&
-                  now - lastScannedRef.current.timestamp < 1000) {
+              // Debounce: ignore the same code within 1.5 seconds
+              if (
+                lastScannedRef.current &&
+                lastScannedRef.current.code === barcode &&
+                now - lastScannedRef.current.timestamp < 1500
+              ) {
                 return;
               }
 
@@ -108,7 +109,6 @@ export const ScanPage: React.FC = () => {
               const validation = validateBarcode(barcode);
 
               if (validation.isValid) {
-                // Check for duplicates
                 if (!scannedBarcodesRef.current.includes(barcode)) {
                   setLocalBarcodes((prev) => {
                     scannedBarcodesRef.current = [...prev, barcode];
@@ -117,12 +117,10 @@ export const ScanPage: React.FC = () => {
                   playBeep();
                   showSuccessToast(`Scanned: ${barcode}`);
                 } else {
-                  showErrorToast(`Barcode already scanned: ${barcode}`);
+                  showErrorToast(`Already scanned: ${barcode}`);
                 }
               } else {
-                showErrorToast(
-                  validation.error || 'Invalid barcode format'
-                );
+                showErrorToast(validation.error || 'Invalid barcode format');
               }
             }
           });
@@ -133,7 +131,6 @@ export const ScanPage: React.FC = () => {
       setCameraActive(false);
       setCameraError(true);
       showErrorToast('Camera access denied. Using manual entry instead.');
-      setFallbackInput('');
     }
   };
 
@@ -158,7 +155,7 @@ export const ScanPage: React.FC = () => {
       showSuccessToast(`Added: ${fallbackInput}`);
       setFallbackInput('');
     } else {
-      showErrorToast(`Barcode already scanned: ${fallbackInput}`);
+      showErrorToast(`Already scanned: ${fallbackInput}`);
     }
   };
 
@@ -166,41 +163,27 @@ export const ScanPage: React.FC = () => {
     setLocalBarcodes((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleDone = () => {
-    // Stop quagga if running
-    if (quaggaInitializedRef.current && cameraActive) {
+  const stopCamera = () => {
+    if (quaggaInitializedRef.current) {
       Quagga.stop();
       quaggaInitializedRef.current = false;
-      setCameraActive(false);
     }
+  };
 
-    // Stop camera stream
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach((track) => track.stop());
-    }
-
-    // Update context with scanned barcodes and navigate back
+  const handleDone = () => {
+    stopCamera();
+    setCameraActive(false);
     setScannedBarcodes(scannedBarcodes);
     navigate(returnPath);
   };
 
-  // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      if (quaggaInitializedRef.current && cameraActive) {
-        Quagga.stop();
-      }
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach((track) => track.stop());
-      }
-    };
-  }, [cameraActive]);
+    return () => { stopCamera(); };
+  }, []);
 
   return (
     <Container className="scan-page">
-      <button className="back-button" onClick={() => navigate(returnPath)}>
+      <button className="back-button" onClick={() => { stopCamera(); navigate(returnPath); }}>
         ← Back
       </button>
 
@@ -211,18 +194,10 @@ export const ScanPage: React.FC = () => {
         </div>
       )}
 
-      {cameraActive && (
-        <div className="camera-section">
-          <div className="video-container">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          </div>
-        </div>
-      )}
+      {/* Always rendered so cameraContainerRef is in the DOM before Quagga.init runs */}
+      <div className="camera-section" style={{ display: cameraActive ? 'flex' : 'none' }}>
+        <div className="video-container" ref={cameraContainerRef} />
+      </div>
 
       {cameraError && (
         <div className="fallback-section">
@@ -233,18 +208,11 @@ export const ScanPage: React.FC = () => {
               placeholder="Enter barcode"
               value={fallbackInput}
               onChange={(e) => setFallbackInput(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  handleFallbackAdd();
-                }
-              }}
+              onKeyPress={(e) => { if (e.key === 'Enter') handleFallbackAdd(); }}
               className="fallback-input"
               autoFocus
             />
-            <button
-              className="fallback-add-btn"
-              onClick={handleFallbackAdd}
-            >
+            <button className="fallback-add-btn" onClick={handleFallbackAdd}>
               Add
             </button>
           </div>
