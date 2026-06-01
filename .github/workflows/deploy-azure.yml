@@ -31,6 +31,18 @@ jobs:
       - name: Make deploy script executable
         run: chmod +x deploy.sh
 
+      - name: Bundle Bun runtime for Azure Linux x64
+        run: |
+          mkdir -p bin
+          BUN_VERSION=$(bun --version | cut -d'+' -f1)
+          echo "Downloading Bun v${BUN_VERSION} for Linux x64..."
+          curl -fsSL "https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/bun-linux-x64.zip" -o bun.zip || \
+          curl -fsSL "https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip" -o bun.zip
+          unzip -o bun.zip
+          mv bun-linux-x64/bun bin/bun
+          chmod +x bin/bun
+          rm -rf bun.zip bun-linux-x64
+
       - name: Upload to Azure Web App
         uses: azure/webapps-deploy@v2
         with:

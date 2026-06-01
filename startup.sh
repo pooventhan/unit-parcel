@@ -1,32 +1,25 @@
 #!/bin/bash
 
-# Azure App Service startup script for unit-parcel
+# Azure App Service startup script for unit-parcel with bundled Bun
 
 set -e
 
 echo "Starting unit-parcel application..."
 
-# Install Bun if not already installed
-if ! command -v bun &> /dev/null; then
-  echo "Installing Bun runtime..."
-  curl -fsSL https://bun.sh/install | bash
-  export PATH="$PATH:$HOME/.bun/bin"
-fi
+# Get absolute directory of the script and add its bin folder to PATH
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PATH="$SCRIPT_DIR/bin:$PATH"
 
-# Install root dependencies if needed
-if [ ! -d "node_modules" ]; then
-  echo "Installing root dependencies..."
-  bun install
+if [ -f "$SCRIPT_DIR/bin/bun" ]; then
+  chmod +x "$SCRIPT_DIR/bin/bun"
+  echo "Using bundled Bun runtime, version: $(bun --version)"
+else
+  echo "Error: Bundled Bun binary not found at $SCRIPT_DIR/bin/bun!"
+  exit 1
 fi
 
 # Navigate to API directory
-cd apps/api
-
-# Install API dependencies if needed
-if [ ! -d "node_modules" ]; then
-  echo "Installing API dependencies..."
-  bun install --production
-fi
+cd "$SCRIPT_DIR/apps/api"
 
 echo "Starting API server..."
 # Use PORT environment variable provided by Azure (default to 3000 if not set)
