@@ -1,2 +1,2 @@
 [config]
-command = echo "Build already completed by GitHub Actions"
+command = deploy.cmd

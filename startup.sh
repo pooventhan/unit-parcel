@@ -6,7 +6,14 @@ set -e
 
 echo "Starting unit-parcel application..."
 
-# Install dependencies if needed
+# Install Bun if not already installed
+if ! command -v bun &> /dev/null; then
+  echo "Installing Bun runtime..."
+  curl -fsSL https://bun.sh/install | bash
+  export PATH="$PATH:$HOME/.bun/bin"
+fi
+
+# Install root dependencies if needed
 if [ ! -d "node_modules" ]; then
   echo "Installing root dependencies..."
   bun install
@@ -18,10 +25,10 @@ cd apps/api
 # Install API dependencies if needed
 if [ ! -d "node_modules" ]; then
   echo "Installing API dependencies..."
-  bun install
+  bun install --production
 fi
 
 echo "Starting API server..."
 # Use PORT environment variable provided by Azure (default to 3000 if not set)
 PORT=${PORT:-3000}
-bun src/index.ts
+exec bun src/index.ts
