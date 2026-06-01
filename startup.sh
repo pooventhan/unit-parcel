@@ -22,7 +22,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 export BUN_INSTALL=/home/site/wwwroot/.bun
 export PATH="$BUN_INSTALL/bin:/home/site/wwwroot/node_modules/.bin:$PATH"
-export NODE_PATH="/home/site/wwwroot/node_modules"
 
 if [ ! -f "$BUN_INSTALL/bin/bun" ]; then
   echo "Bun not found. Installing..."
@@ -33,7 +32,12 @@ fi
 
 echo "Using Bun version:"
 bun --version
-echo "Running bun install ..."
+
+# Clean up any pre-existing or corrupted node_modules to avoid symlink/hardlink mismatch across environments
+echo "Cleaning existing node_modules to ensure a fresh, clean installation..."
+rm -rf node_modules apps/api/node_modules apps/web/node_modules
+
+echo "Running clean bun install..."
 bun install
 
 # Navigate to API directory
