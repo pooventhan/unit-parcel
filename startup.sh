@@ -37,11 +37,15 @@ bun --version
 echo "Cleaning existing node_modules to ensure a fresh, clean installation..."
 rm -rf node_modules apps/api/node_modules apps/web/node_modules
 
-echo "Running clean bun install..."
-bun install
+# Remove root package.json and bun.lock inside the container to prevent Bun from treating this as a workspace
+echo "Bypassing workspace configuration inside the container..."
+rm -f package.json bun.lock
 
 # Navigate to API directory
 cd "$SCRIPT_DIR/apps/api"
+
+echo "Running clean, standalone bun install with copyfile backend..."
+bun install --production --backend copyfile
 
 echo "Starting API server..."
 # Use PORT environment variable provided by Azure (default to 3000 if not set)
