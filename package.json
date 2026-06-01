@@ -1,13 +1,18 @@
 {
   "name": "unit-parcel",
   "private": true,
+  "type": "module",
   "workspaces": [
     "apps/*"
   ],
   "scripts": {
     "dev": "bun --filter \"*\" dev",
     "build": "bun --filter \"*\" build",
+    "build:prod": "bun run build:web && cd apps/api && bun run typecheck && cd ../.. && bun run copy:web-to-api",
+    "build:web": "bun --filter web build",
+    "copy:web-to-api": "node scripts/copy-web-dist.js",
     "api:dev": "bun --filter api dev",
-    "web:dev": "bun --filter web dev"
+    "web:dev": "bun --filter web dev",
+    "start": "cd apps/api && bun src/index.ts"
   }
 }

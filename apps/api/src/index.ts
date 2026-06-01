@@ -11,10 +11,10 @@ async function main() {
 
   registerParcelRoutes(app, service);
 
-  const port = 3000;
+  const port = parseInt(process.env.PORT || '3000', 10);
   await app.listen({ port, host: '0.0.0.0' });
 
-  console.log(`Server running at http://localhost:${port}`);
+  console.log(`Server running at http://0.0.0.0:${port}`);
 }
 
 main().catch((error) => {
