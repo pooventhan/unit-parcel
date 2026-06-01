@@ -9,6 +9,7 @@ import { playBeep } from '../utils/audio';
 import { validateBarcode } from '../utils/barcode-validator';
 import { showSuccessToast, showErrorToast } from '../utils/toast';
 import './ScanPage.css';
+import { Button } from '../components/common/Button';
 
 export const ScanPage: React.FC = () => {
   const navigate = useNavigate();
