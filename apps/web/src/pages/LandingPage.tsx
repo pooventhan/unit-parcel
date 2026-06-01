@@ -10,8 +10,8 @@ export const LandingPage: React.FC = () => {
   return (
     <Container className="landing-page">
       <div className="buttons-container">
-        <Button label="Incoming" variant="primary" onClick={() => navigate('/incoming')} />
-        <Button label="Release" variant="primary" onClick={() => navigate('/release')} />
+        <Button label="⬇️ 📦 Incoming" variant="primary" onClick={() => navigate('/incoming')} />
+        <Button label="⬆️ 📦 Release" variant="primary" onClick={() => navigate('/release')} />
       </div>
     </Container>
   );
