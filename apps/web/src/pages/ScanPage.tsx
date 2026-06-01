@@ -22,6 +22,7 @@ export const ScanPage: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const quaggaInitializedRef = useRef(false);
   const scannedBarcodesRef = useRef<string[]>([]);
+  const lastScannedRef = useRef<{ code: string; timestamp: number } | null>(null);
 
   const handleLaunchCamera = async () => {
     try {
@@ -58,6 +59,9 @@ export const ScanPage: React.FC = () => {
             target: videoRef.current,
             constraints: {
               facingMode: 'environment',
+              autofocus: true,
+              autoFocus: true,
+              focusMode: 'continuous',
             },
           },
           decoder: {
@@ -80,10 +84,20 @@ export const ScanPage: React.FC = () => {
           quaggaInitializedRef.current = true;
           setCameraActive(true);
 
-          // Handle barcode detection
+          // Handle barcode detection with debouncing
           Quagga.onDetected((result: any) => {
             if (result.codeResult && result.codeResult.code) {
               const barcode = result.codeResult.code;
+              const now = Date.now();
+
+              // Debounce: ignore if same code was scanned within 1 second
+              if (lastScannedRef.current &&
+                  lastScannedRef.current.code === barcode &&
+                  now - lastScannedRef.current.timestamp < 1000) {
+                return;
+              }
+
+              lastScannedRef.current = { code: barcode, timestamp: now };
               const validation = validateBarcode(barcode);
 
               if (validation.isValid) {
