@@ -26,42 +26,41 @@ export const ScanPage: React.FC = () => {
 
   const handleLaunchCamera = async () => {
     try {
-      console.log('[ScanPage] Launch camera clicked');
-
-      // Check if mediaDevices API is available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera API not supported. Please ensure: 1) You\'re using HTTPS (not HTTP), 2) Your browser supports camera access, 3) You have not denied camera permissions in browser settings');
+        throw new Error('Camera API not supported. Please ensure you are using HTTPS and your browser supports camera access.');
       }
 
       setCameraError(false);
       setCameraActive(true);
 
-      console.log('[ScanPage] Requesting camera permission...');
+      // Step 1: Get permission with a minimal request — labels are blank until permission is granted
+      const permissionStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      permissionStream.getTracks().forEach(t => t.stop());
 
-      // Get available cameras and prefer the primary wide-angle lens
+      // Step 2: Now labels are populated — enumerate and pick the right camera
       const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoCameras = devices.filter(device => device.kind === 'videoinput');
-      console.log('[ScanPage] Available cameras:', videoCameras.length);
+      const cameras = devices.filter(d => d.kind === 'videoinput');
+      console.log('[ScanPage] Cameras:', cameras.map(c => c.label));
 
-      // Try to use the first/primary camera (usually the main lens)
-      const constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          ...(videoCameras.length > 0 && { deviceId: { exact: videoCameras[0].deviceId } }),
-        },
-      };
+      // Prefer the main rear camera: has "back"/"rear" in label, excludes "ultra", "tele", "front", "selfie"
+      const mainRearCamera =
+        cameras.find(c => {
+          const l = c.label.toLowerCase();
+          return (l.includes('back') || l.includes('rear')) && !l.includes('ultra') && !l.includes('tele');
+        }) ||
+        cameras.find(c => {
+          const l = c.label.toLowerCase();
+          return !l.includes('front') && !l.includes('selfie') && !l.includes('user');
+        });
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log('[ScanPage] Selected camera:', mainRearCamera?.label ?? 'fallback (facingMode only)');
 
-      console.log('[ScanPage] Camera permission granted, received stream:', stream);
-      // Wait for video element to be rendered
+      // Step 3: Let Quagga open the camera — no manual getUserMedia needed
       await new Promise((resolve) => setTimeout(resolve, 0));
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
+      const quaggaConstraints = mainRearCamera
+        ? { deviceId: { exact: mainRearCamera.deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+        : { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } };
 
       // Initialize Quagga for barcode detection
       Quagga.init(
@@ -70,12 +69,7 @@ export const ScanPage: React.FC = () => {
             name: 'LiveStream',
             type: 'LiveStream',
             target: videoRef.current,
-            constraints: {
-              facingMode: 'environment',
-              autofocus: true,
-              autoFocus: true,
-              focusMode: 'continuous',
-            },
+            constraints: quaggaConstraints,
           },
           decoder: {
             readers: ['code_128_reader'],
