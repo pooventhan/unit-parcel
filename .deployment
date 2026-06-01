@@ -1,2 +1,2 @@
 [config]
-command = bash -l -c 'bun run build:prod && bun install --production'
+command = echo "Build already completed by GitHub Actions"
